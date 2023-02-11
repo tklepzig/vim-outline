@@ -165,8 +165,9 @@ export const Open = () => {
   const outline = Build()
 
   if len(outline) == 0
+    
     echohl ErrorMsg
-    echo  "No matching rules found"
+    unsilent echo  "No matching rules found"
     echohl None
     return
   endif
