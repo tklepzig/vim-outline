@@ -9,31 +9,39 @@ const ConfigIncludeBaseRules = () => get(g:, "OutlineIncludeBaseRules", true)
 const ConfigRules = () => get(g:, "OutlineRules", {})
 
 const bufferName = "outline"
+const noHighlight = "no-highlight"
 var orientation = ConfigOrientation()
 var previousBufferNr = -1
 var previousWinId = -1
+
+# TODO More included highlight groups (and better names...)
+
 const g:rules = {
   "ruby": [
-    [ "describe '(.*)'.*$" ],
-    [ "context '(.*)'.*$", "OutlineHighlight2" ],
-    [ "it '(.*)'.*$", "OutlineHighlight1" ],
-    [ 'def (.*)$', "OutlineHighlight1" ],
-    [ 'class (.*)$', "OutlineHighlight2" ],
-    [ 'module (.*)$', "OutlineHighlight2" ]
+    [ "describe '(.*)'" ],
+    [ "context '(.*)'", "OutlineHighlight2" ],
+    [ "it '(.*)'", "OutlineHighlight1" ],
+    [ 'def ([^\(]*)', "OutlineHighlight1" ],
+    [ 'class (.*)', "OutlineHighlight2" ],
+    [ 'module (.*)', "OutlineHighlight2" ]
   ],
   "typescript.tsx": [
-      [ '.*const([^=]*) \= \(.*\) \=\>.*$' ]
+      [ '.*const ([^=]*) \= \(.*\) \=\>' ],
+      [ '.*interface (.*)\s*\{', "OutlineHighlight2" ],
+      [ '.*type (.*)\s*\=', "OutlineHighlight2" ],
     ],
   "typescript": [
-      [ '.*const([^=]*) \= \(.*\) \=\>.*$' ]
+      [ '.*const ([^=]*) \= \(.*\) \=\>' ],
+      [ '.*interface (.*)\s*\{', "OutlineHighlight2" ],
+      [ '.*type (.*)\s*\=', "OutlineHighlight2" ],
     ],
   "markdown": [
-      [ '(# .*)$' ],
-      [ '(## .*)$' ],
-      [ '(### .*)$' ],
-      [ '(#### .*)$' ],
-      [ '(##### .*)$' ],
-      [ '(###### .*)$' ]
+      [ '(# .*)' ],
+      [ '(## .*)' ],
+      [ '(### .*)' ],
+      [ '(#### .*)' ],
+      [ '(##### .*)' ],
+      [ '(###### .*)' ]
     ],
 }
 
@@ -64,15 +72,14 @@ const Build = (): list<any> => {
   const view = winsaveview()
   var result = []
   for [pattern; rest] in items
-    const highlight = rest->len() > 0 ? rest[0] : ""
+    const highlight = rest->len() > 0 ? rest[0] : noHighlight
     const matches = utils.FindMatches(pattern)
     var lines = map(split(matches, "\n"), (_, x) => trim(x))
 
     const entries = lines->mapnew((_, line) => ({
       highlight: highlight,
-      lineNr: str2nr(line[0 : stridx(trim(line), " ") - 1]),
-      text: trim(line[stridx(trim(line), " ") :])
-        ->substitute('\v' .. pattern, '\1', "g"),
+      lineNr: utils.LineNrFromResult(line),
+      text: utils.ReplaceWithFirstGroup(utils.TextFromResult(line), pattern),
       indent: utils.GetIndent(line) }))
 
     result += entries
@@ -185,14 +192,16 @@ export const Open = () => {
   setlocal filetype=outline
 
   const uniqueHighlights = outline
-                      ->copy()
-                      ->filter((_, item) => item.highlight->len() > 0)
-                      ->map((_, item) => item.highlight)
+                      ->mapnew((_, item) => item.highlight)
                       ->sort()
                       ->uniq()
 
   for highlight in uniqueHighlights
-    prop_type_add(highlight, { "highlight": highlight, "bufnr": bufnr(bufferName) })
+    if highlight == noHighlight
+      prop_type_add(noHighlight, { "bufnr": bufnr(bufferName) })
+    else
+      prop_type_add(highlight, { "highlight": highlight, "bufnr": bufnr(bufferName) })
+    endif
   endfor
 
   var selectedOutlineLineNr = 1
@@ -202,9 +211,7 @@ export const Open = () => {
     const line = repeat(" ", item.indent) .. item.text
     append(lineNumber, line)
     lineNumber += 1
-    if item.highlight->len() > 0
-      prop_add(lineNumber, 1, { length: strlen(line), type: item.highlight, id: item.lineNr })
-    endif
+    prop_add(lineNumber, 1, { length: strlen(line), type: item.highlight, id: item.lineNr })
 
     if item.lineNr == previousLineNr
       selectedOutlineLineNr = lineNumber

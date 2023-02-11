@@ -5,10 +5,22 @@ export const GetIndent = (line): number =>
 
 export const FindMatches = (pattern: string): string => {
   try
-    return execute('g/\v^\s*' .. pattern)
+    return execute('g/\v^\s*' .. pattern .. '.*$')
   catch
     return ""
   endtry
+}
+
+export const LineNrFromResult = (line: string): number => {
+  return str2nr(line[0 : stridx(trim(line), " ") - 1])
+}
+
+export const TextFromResult = (line: string): string => {
+  return line[stridx(trim(line), " ") :]
+}
+
+export const ReplaceWithFirstGroup = (text: string, pattern: string): string => {
+  return text->substitute('\v^\s*' .. pattern .. '.*$', '\1', "g")
 }
 
 export const MergeRules = (baseRules: dict<any>, additionalRules): dict<any> => {
