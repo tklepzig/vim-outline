@@ -95,6 +95,7 @@ const SelectBufferLine = (lineNr: number) => {
   win_gotoid(previousWinId)
   execute 'silent buffer ' .. previousBufferNr
   setpos(".", [previousBufferNr, lineNr, 1])
+  normal zz
 }
 
 const Select = () => {
