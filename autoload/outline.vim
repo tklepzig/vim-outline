@@ -1,18 +1,18 @@
 vim9script
 
-import "./outline/utils.vim" as utils
+import "./utils.vim" as utils
 
 const ConfigWindowWidth = () => get(g:, "OutlineWidth", 40)
 const ConfigWindowHeight = () => get(g:, "OutlineHeight", 10)
 const ConfigOrientation = () => get(g:, "OutlineOrientation", "vertical")
-
+const ConfigIncludeBaseRules = () => get(g:, "OutlineIncludeBaseRules", true)
+const ConfigRules = () => get(g:, "OutlineRules", {})
 
 const bufferName = "outline"
 var orientation = ConfigOrientation()
 var previousBufferNr = -1
 var previousWinId = -1
-
-const rules = {
+const g:rules = {
   "ruby": [
     [ "describe '(.*)'.*$" ],
     [ "context '(.*)'.*$", "OutlineHighlight2" ],
@@ -38,6 +38,7 @@ const rules = {
 }
 
 const Build = (): list<any> => {
+  const rules = utils.MergeRules(ConfigIncludeBaseRules() ? g:rules : {}, ConfigRules())
   const items = rules->get(&filetype, [])
 
   # Doing it with reduce does not work since for whatever reason the catch
