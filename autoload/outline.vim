@@ -2,12 +2,9 @@ vim9script
 
 import "./outline/utils.vim" as utils
 
-const ConfigWindowWidth = () =>
-  get(g:, "OutlineWidth", 40)
-const ConfigWindowHeight = () =>
-  get(g:, "OutlineHeight", 10)
-const ConfigOrientation = () =>
-  get(g:, "OutlineOrientation", "vertical")
+const ConfigWindowWidth = () => get(g:, "OutlineWidth", 40)
+const ConfigWindowHeight = () => get(g:, "OutlineHeight", 10)
+const ConfigOrientation = () => get(g:, "OutlineOrientation", "vertical")
 
 
 const bufferName = "outline"
@@ -44,11 +41,11 @@ const Build = (): list<any> => {
   const items = rules->get(&filetype, [])
 
   # Doing it with reduce does not work since for whatever reason the catch
-  # from utils.CollectBlocks stops the reduce which occurs if no matching line
+  # from utils.FindMatches stops the reduce which occurs if no matching line
   # is found for the current item?!
   #return items
     #->reduce((result, item) => {
-      #const matches = utils.CollectBlocks(item.pattern)
+      #const matches = utils.FindMatches(item.pattern)
       #var lines = map(split(matches, "\n"), (_, x) => trim(x))
 
       #const entries = lines->mapnew((_, line) => ({
@@ -67,7 +64,7 @@ const Build = (): list<any> => {
   var result = []
   for [pattern; rest] in items
     const highlight = rest->len() > 0 ? rest[0] : ""
-    const matches = utils.CollectBlocks(pattern)
+    const matches = utils.FindMatches(pattern)
     var lines = map(split(matches, "\n"), (_, x) => trim(x))
 
     const entries = lines->mapnew((_, line) => ({
@@ -138,6 +135,22 @@ const ToggleOrientation = () => {
   endif
 }
 
+const ToggleZoom = () => {
+  if orientation == "vertical"
+    if winwidth(0) > ConfigWindowWidth()
+      execute("vertical resize " .. ConfigWindowWidth())
+    else
+      vertical resize
+    endif
+  else
+    if winheight(0) > ConfigWindowHeight()
+      execute("resize " .. ConfigWindowHeight())
+    else
+      resize
+    endif
+  endif
+}
+
 export const Open = () => {
   var outlineBuffer = bufnr(bufferName)
   if outlineBuffer > 0 && bufexists(outlineBuffer)
@@ -202,6 +215,7 @@ export const Open = () => {
   nnoremap <script> <silent> <nowait> <buffer> o <scriptcmd>Select()<cr>
   nnoremap <script> <silent> <nowait> <buffer> p <scriptcmd>Preview()<cr>
   nnoremap <script> <silent> <nowait> <buffer> m <scriptcmd>ToggleOrientation()<cr>
+  nnoremap <script> <silent> <nowait> <buffer> z <scriptcmd>ToggleZoom()<cr>
 }
 
 export const Toggle = () => {
