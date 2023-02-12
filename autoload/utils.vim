@@ -1,8 +1,5 @@
 vim9script
 
-export const GetIndent = (line): number => 
-  match(line[stridx(trim(line), " ") :], "[^ ]")
-
 export const FindMatches = (pattern: string): string => {
   try
     return execute('g/\v^\s*' .. pattern .. '.*$')
@@ -11,12 +8,15 @@ export const FindMatches = (pattern: string): string => {
   endtry
 }
 
+export const IndentFromResult = (line: string): number => 
+  match(line[stridx(trim(line), " ") + 1 :], "[^ ]")
+
 export const LineNrFromResult = (line: string): number => {
   return str2nr(line[0 : stridx(trim(line), " ") - 1])
 }
 
 export const TextFromResult = (line: string): string => {
-  return line[stridx(trim(line), " ") :]
+  return line[stridx(trim(line), " ") + 1 :]
 }
 
 export const ReplaceWithFirstGroup = (text: string, pattern: string): string => {

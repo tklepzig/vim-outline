@@ -80,7 +80,7 @@ const Build = (): list<any> => {
       highlight: highlight,
       lineNr: utils.LineNrFromResult(line),
       text: utils.ReplaceWithFirstGroup(utils.TextFromResult(line), pattern),
-      indent: utils.GetIndent(line) }))
+      indent: utils.IndentFromResult(line) }))
 
     result += entries
   endfor
