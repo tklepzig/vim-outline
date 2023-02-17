@@ -23,17 +23,21 @@ const g:rules = {
     [ "it '(.*)'", "OutlineHighlight1" ],
     [ 'def ([^\(]*)', "OutlineHighlight1" ],
     [ 'class (.*)', "OutlineHighlight2" ],
-    [ 'module (.*)', "OutlineHighlight2" ]
+    [ 'module (.*)', "OutlineHighlight2" ],
   ],
   "typescript.tsx": [
       [ '.*const ([^=]*) \= \(.*\) \=\>' ],
       [ '.*interface (.*)\s*\{', "OutlineHighlight2" ],
       [ '.*type (.*)\s*\=', "OutlineHighlight2" ],
+      [ "describe\\([\"'](.*)[\"']," ],
+      [ "it\\([\"'](.*)[\"'],", "OutlineHighlight1" ],
     ],
   "typescript": [
       [ '.*const ([^=]*) \= \(.*\) \=\>' ],
       [ '.*interface (.*)\s*\{', "OutlineHighlight2" ],
       [ '.*type (.*)\s*\=', "OutlineHighlight2" ],
+      [ "describe\\([\"'](.*)[\"']," ],
+      [ "it\\([\"'](.*)[\"'],", "OutlineHighlight1" ],
     ],
   "markdown": [
       [ '(# .*)' ],
@@ -41,7 +45,7 @@ const g:rules = {
       [ '(### .*)' ],
       [ '(#### .*)' ],
       [ '(##### .*)' ],
-      [ '(###### .*)' ]
+      [ '(###### .*)' ],
     ],
 }
 
