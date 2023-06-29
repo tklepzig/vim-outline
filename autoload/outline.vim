@@ -17,41 +17,28 @@ var previousWinId = -1
 # TODO More included highlight groups (and better names...)
 
 const g:rules = {
-  "ruby": [
-    [ "describe '(.*)'" ],
-    [ "context '(.*)'", "OutlineHighlight2" ],
-    [ "it '(.*)'", "OutlineHighlight1" ],
-    [ 'def ([^\(]*)', "OutlineHighlight1" ],
-    [ 'class (.*)', "OutlineHighlight2" ],
-    [ 'module (.*)', "OutlineHighlight2" ],
-  ],
-  "typescript.tsx": [
-      [ '.*const ([^=]*) \= \(.*\) \=\>' ],
-      [ '.*interface (.*)\s*\{', "OutlineHighlight2" ],
-      [ '.*type (.*)\s*\=', "OutlineHighlight2" ],
-      [ "describe\\([\"'](.*)[\"']," ],
-      [ "it\\([\"'](.*)[\"'],", "OutlineHighlight1" ],
-    ],
-  "typescript": [
-      [ '.*const ([^=]*) \= \(.*\) \=\>' ],
-      [ '.*interface (.*)\s*\{', "OutlineHighlight2" ],
-      [ '.*type (.*)\s*\=', "OutlineHighlight2" ],
-      [ "describe\\([\"'](.*)[\"']," ],
-      [ "it\\([\"'](.*)[\"'],", "OutlineHighlight1" ],
-    ],
-  "markdown": [
-      [ '(# .*)' ],
-      [ '(## .*)' ],
-      [ '(### .*)' ],
-      [ '(#### .*)' ],
-      [ '(##### .*)' ],
-      [ '(###### .*)' ],
-    ],
+  "ruby": {
+      "collection1": [
+        [ "describe '(.*)'" ],
+        [ "context '(.*)'", "OutlineHighlight2" ],
+        [ "it '(.*)'", "OutlineHighlight1" ],
+        [ 'def ([^\(]*)', "OutlineHighlight1" ],
+        [ 'class (.*)', "OutlineHighlight2" ],
+        [ 'module (.*)', "OutlineHighlight2" ],
+      ],
+  }
 }
 
-const Build = (): list<any> => {
+# TODO Edit/Add collections live into an editable pane? (E.g. switch via
+# mapping between collection editor and search result view)
+const Collections = (): list<string> => {
   const rules = utils.MergeRules(ConfigIncludeBaseRules() ? g:rules : {}, ConfigRules())
-  const items = rules->get(&filetype, [])
+  return rules->get(&filetype, {})->keys()
+}
+
+const Build = (collection): list<any> => {
+  const rules = utils.MergeRules(ConfigIncludeBaseRules() ? g:rules : {}, ConfigRules())
+  const items = rules->get(&filetype, {})->get(collection, [])
 
   # Doing it with reduce does not work since for whatever reason the catch
   # from utils.FindMatches stops the reduce which occurs if no matching line
@@ -174,15 +161,16 @@ export const Open = () => {
   previousBufferNr = bufnr("%")
   previousWinId = win_getid()
 
-  const outline = Build()
+  const outline = Build("collection1")
+  const collections = Collections()
 
   if len(outline) == 0
-    
     echohl ErrorMsg
     unsilent echo  "No matching rules found"
     echohl None
     return
   endif
+
 
   if orientation == "horizontal"
     new
@@ -209,8 +197,16 @@ export const Open = () => {
   endfor
 
   var selectedOutlineLineNr = 1
-
   var lineNumber = 0
+
+  for collection in collections
+    append(lineNumber, collection)
+    lineNumber += 1
+    #prop_add(lineNumber, 1, { length: strlen(line), type: item.highlight, id: item.lineNr })
+  endfor
+  append(lineNumber, repeat("-", winwidth(0)))
+  lineNumber += 1
+
   for item in outline
     const line = repeat(" ", item.indent) .. item.text
     append(lineNumber, line)
@@ -221,8 +217,8 @@ export const Open = () => {
       selectedOutlineLineNr = lineNumber
     endif
   endfor
-  setlocal readonly nomodifiable
 
+  setlocal readonly nomodifiable
   setpos(".", [0, selectedOutlineLineNr, 1])
 
   nnoremap <script> <silent> <nowait> <buffer> <cr> <scriptcmd>Select()<cr>
