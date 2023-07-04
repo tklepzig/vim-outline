@@ -13,15 +13,18 @@ const noHighlight = "no-highlight"
 var orientation = ConfigOrientation()
 var previousBufferNr = -1
 var previousWinId = -1
+var currentCollectionName = ""
 
 # TODO More included highlight groups (and better names...)
 
 const g:rules = {
   "ruby": {
-      "collection1": [
+      "RSpec": [
         [ "describe '(.*)'" ],
         [ "context '(.*)'", "OutlineHighlight2" ],
         [ "it '(.*)'", "OutlineHighlight1" ],
+      ],
+      "Ruby": [
         [ 'def ([^\(]*)', "OutlineHighlight1" ],
         [ 'class (.*)', "OutlineHighlight2" ],
         [ 'module (.*)', "OutlineHighlight2" ],
@@ -31,14 +34,31 @@ const g:rules = {
 
 # TODO Edit/Add collections live into an editable pane? (E.g. switch via
 # mapping between collection editor and search result view)
-const Collections = (): list<string> => {
+const CollectionNames = (): list<string> => {
   const rules = utils.MergeRules(ConfigIncludeBaseRules() ? g:rules : {}, ConfigRules())
   return rules->get(&filetype, {})->keys()
 }
 
-const Build = (collection): list<any> => {
-  const rules = utils.MergeRules(ConfigIncludeBaseRules() ? g:rules : {}, ConfigRules())
-  const items = rules->get(&filetype, {})->get(collection, [])
+def CollectionItems(collectionName: string): list<any>
+  const collections = utils.MergeRules(ConfigIncludeBaseRules() ? g:rules : {}, ConfigRules())->get(&filetype, {})
+
+  if collectionName != ""
+    currentCollectionName = collectionName
+    return collections->get(collectionName, [])
+  endif
+
+  const collectionsItems = collections->items()
+  if collectionsItems->len() > 0
+    const [name, items] = collectionsItems[0]
+    currentCollectionName = name
+    return items
+  endif
+
+  return []
+enddef
+
+const Build = (collectionName: string): list<any> => {
+  const items = CollectionItems(collectionName)
 
   # Doing it with reduce does not work since for whatever reason the catch
   # from utils.FindMatches stops the reduce which occurs if no matching line
@@ -85,6 +105,7 @@ export const Close = () => {
   if outlineBuffer > 0 && bufexists(outlineBuffer)
     if previousWinId > 0
       win_gotoid(previousWinId)
+      previousWinId = -1
     endif
     execute 'bwipeout! ' .. outlineBuffer
   endif
@@ -151,27 +172,7 @@ const ToggleZoom = () => {
   endif
 }
 
-export const Open = () => {
-  var outlineBuffer = bufnr(bufferName)
-  if outlineBuffer > 0 && bufexists(outlineBuffer)
-    return
-  endif
-
-  const previousLineNr = line(".")
-  previousBufferNr = bufnr("%")
-  previousWinId = win_getid()
-
-  const outline = Build("collection1")
-  const collections = Collections()
-
-  if len(outline) == 0
-    echohl ErrorMsg
-    unsilent echo  "No matching rules found"
-    echohl None
-    return
-  endif
-
-
+export const CreateWindow = () => {
   if orientation == "horizontal"
     new
     execute "resize " .. ConfigWindowHeight()
@@ -180,8 +181,64 @@ export const Open = () => {
     execute "vertical resize " .. ConfigWindowWidth()
   endif
 
-  execute "file " .. bufferName
+  execute "silent file " .. bufferName
   setlocal filetype=outline
+}
+
+export const FreezeWindow = () => {
+  setlocal readonly nomodifiable
+}
+
+export const OpenCollectionsView = () => {
+  Close()
+
+  #var outlineBuffer = bufnr(bufferName)
+  #if outlineBuffer > 0 && bufexists(outlineBuffer)
+    #return
+  #endif
+
+  const collectionNames = CollectionNames()
+
+  CreateWindow()
+
+  var lineNumber = 0
+  for name in collectionNames
+    append(lineNumber, name)
+    lineNumber += 1
+  endfor
+
+  append(lineNumber, "Custom (WIP)")
+  lineNumber += 1
+
+  FreezeWindow()
+  setpos(".", [0, 1, 1])
+
+  nnoremap <script> <silent> <nowait> <buffer> <cr> <scriptcmd>SelectCollection()<cr>
+  nnoremap <script> <silent> <nowait> <buffer> o <scriptcmd>SelectCollection()<cr>
+}
+
+export const OpenResultView = (collectionName: string) => {
+  Close()
+
+  #var outlineBuffer = bufnr(bufferName)
+  #if outlineBuffer > 0 && bufexists(outlineBuffer)
+    #return
+  #endif
+
+  const previousLineNr = line(".")
+  previousBufferNr = bufnr("%")
+  previousWinId = win_getid()
+
+  const outline = Build(collectionName)
+
+  #if len(outline) == 0
+    #echohl ErrorMsg
+    #unsilent echo  "No matching rules found"
+    #echohl None
+    #return
+  #endif
+
+  CreateWindow()
 
   const uniqueHighlights = outline
                       ->mapnew((_, item) => item.highlight)
@@ -199,14 +256,6 @@ export const Open = () => {
   var selectedOutlineLineNr = 1
   var lineNumber = 0
 
-  for collection in collections
-    append(lineNumber, collection)
-    lineNumber += 1
-    #prop_add(lineNumber, 1, { length: strlen(line), type: item.highlight, id: item.lineNr })
-  endfor
-  append(lineNumber, repeat("-", winwidth(0)))
-  lineNumber += 1
-
   for item in outline
     const line = repeat(" ", item.indent) .. item.text
     append(lineNumber, line)
@@ -218,7 +267,7 @@ export const Open = () => {
     endif
   endfor
 
-  setlocal readonly nomodifiable
+  FreezeWindow()
   setpos(".", [0, selectedOutlineLineNr, 1])
 
   nnoremap <script> <silent> <nowait> <buffer> <cr> <scriptcmd>Select()<cr>
@@ -226,13 +275,22 @@ export const Open = () => {
   nnoremap <script> <silent> <nowait> <buffer> p <scriptcmd>Preview()<cr>
   nnoremap <script> <silent> <nowait> <buffer> m <scriptcmd>ToggleOrientation()<cr>
   nnoremap <script> <silent> <nowait> <buffer> z <scriptcmd>ToggleZoom()<cr>
+  nnoremap <script> <silent> <nowait> <buffer> c <scriptcmd>OpenCollectionsView()<cr>
 }
+
+const SelectCollection = () => {
+  const line = getline(".")
+  if (line != "Custom (WIP)")
+    OpenResultView(getline("."))
+  endif
+}
+
 
 export const Toggle = () => {
   var outlineBuffer = bufnr(bufferName)
   if outlineBuffer > 0 && bufexists(outlineBuffer)
     Close()
   else
-    Open()
+    OpenResultView(currentCollectionName)
   endif
 }
