@@ -196,17 +196,21 @@ export const OpenCollectionsView = () => {
 
   CreateWindow()
 
+  var currentCollectionLineNumber = 1
   var lineNumber = 0
   for name in collectionNames
     append(lineNumber, name)
     lineNumber += 1
+    if (name == currentCollectionName)
+      currentCollectionLineNumber = lineNumber
+    endif
   endfor
 
   append(lineNumber, "Custom (WIP)")
   lineNumber += 1
 
   FreezeWindow()
-  setpos(".", [0, 1, 1])
+  setpos(".", [0, currentCollectionLineNumber, 1])
 
   nnoremap <script> <silent> <nowait> <buffer> <cr> <scriptcmd>SelectCollection()<cr>
   nnoremap <script> <silent> <nowait> <buffer> o <scriptcmd>SelectCollection()<cr>
