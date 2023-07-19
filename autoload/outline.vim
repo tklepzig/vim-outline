@@ -192,11 +192,6 @@ export const FreezeWindow = () => {
 export const OpenCollectionsView = () => {
   Close()
 
-  #var outlineBuffer = bufnr(bufferName)
-  #if outlineBuffer > 0 && bufexists(outlineBuffer)
-    #return
-  #endif
-
   const collectionNames = CollectionNames()
 
   CreateWindow()
@@ -220,23 +215,11 @@ export const OpenCollectionsView = () => {
 export const OpenResultView = (collectionName: string) => {
   Close()
 
-  #var outlineBuffer = bufnr(bufferName)
-  #if outlineBuffer > 0 && bufexists(outlineBuffer)
-    #return
-  #endif
-
   const previousLineNr = line(".")
   previousBufferNr = bufnr("%")
   previousWinId = win_getid()
 
   const outline = Build(collectionName)
-
-  #if len(outline) == 0
-    #echohl ErrorMsg
-    #unsilent echo  "No matching rules found"
-    #echohl None
-    #return
-  #endif
 
   CreateWindow()
 
@@ -255,6 +238,8 @@ export const OpenResultView = (collectionName: string) => {
 
   var selectedOutlineLineNr = 1
   var lineNumber = 0
+  append(lineNumber, "Collection: " .. currentCollectionName)
+  lineNumber += 2
 
   for item in outline
     const line = repeat(" ", item.indent) .. item.text
