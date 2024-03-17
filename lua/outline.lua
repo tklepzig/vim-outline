@@ -1,6 +1,6 @@
 local bufferName = "outline"
 
-local function findMatches(pattern)
+local function find_matches(pattern)
   local status, result = pcall(vim.api.nvim_exec2, 'g/\\v^\\s*' .. pattern .. '.*$', { output = true })
   if status then
     return result.output
@@ -9,41 +9,41 @@ local function findMatches(pattern)
   end
 end
 
-local function TextFromResult(line)
+local function text_from_result(line)
   local spaceidx = assert(string.find(vim.trim(line), " "))
   return string.sub(line, spaceidx + 1)
 end
 
-function IndentFromResult(line)
-  local firstNonSpaceIndex = assert(string.find(TextFromResult(line), "[^ ]"))
+local function indent_from_result(line)
+  local first_non_space_index = assert(string.find(text_from_result(line), "[^ ]"))
   -- subtract 1 because lua is 1-based
-  return firstNonSpaceIndex - 1
+  return first_non_space_index - 1
 end
 
-local function LineNrFromResult(line)
+local function line_nr_from_result(line)
   return tonumber(string.match(line, "^%d+"))
 end
 
-local function ReplaceWithFirstGroup(text, pattern)
+local function replace_with_first_group(text, pattern)
   return string.gsub(text, "^%s*" .. pattern .. ".*$", "%1")
 end
 
-local function MergeRules(baseRules, additionalRules)
-  local allRules = vim.tbl_deep_extend("force", {}, baseRules)
-  for ft, patterns in pairs(additionalRules) do
-    local existingFtPatterns = allRules[ft] or {}
+local function merge_rules(base_rules, additional_rules)
+  local all_rules = vim.tbl_deep_extend("force", {}, base_rules)
+  for ft, patterns in pairs(additional_rules) do
+    local existing_ft_patterns = all_rules[ft] or {}
 
-    if #existingFtPatterns > 0 then
-      allRules[ft] = vim.list_extend(existingFtPatterns, patterns)
+    if #existing_ft_patterns > 0 then
+      all_rules[ft] = vim.list_extend(existing_ft_patterns, patterns)
     else
-      allRules[ft] = patterns
+      all_rules[ft] = patterns
     end
   end
 
-  return allRules
+  return all_rules
 end
 
-local g_rules = {
+local builtin_rules = {
   ruby = {
     { "describe '(.*)'" },
     { "context '(.*)'", "OutlineHighlight2" },
@@ -76,8 +76,8 @@ local g_rules = {
   },
 }
 
-function Build()
-  local rules = MergeRules(g_rules, {})
+local function build()
+  local rules = merge_rules(builtin_rules, {})
   local items = rules[vim.bo.filetype] or {}
   local view = vim.fn.winsaveview()
   local result = {}
@@ -85,19 +85,19 @@ function Build()
   for _, item in ipairs(items) do
     local pattern, highlight = unpack(item)
     highlight = highlight or "no-highlight"
-    local matches = findMatches(pattern)
+    local matches = find_matches(pattern)
     local lines = vim.split(assert(matches), "\n")
 
     for _, line in ipairs(lines) do
       line = vim.trim(line)
 
-      local lineNr = LineNrFromResult(line)
+      local lineNr = line_nr_from_result(line)
       if lineNr ~= nil then
         table.insert(result, {
           lineNr = lineNr,
           highlight = highlight,
-          text = ReplaceWithFirstGroup(TextFromResult(line), pattern),
-          indent = IndentFromResult(line)
+          text = replace_with_first_group(text_from_result(line), pattern),
+          indent = indent_from_result(line)
         })
       end
     end
@@ -111,7 +111,7 @@ function Build()
 
   table.sort(result, compare)
 
-  for k, v in ipairs(result) do
+  for _, v in ipairs(result) do
     print(v.text, v.indent, v.lineNr, v.highlight)
   end
 
@@ -131,7 +131,7 @@ local function open()
 end
 
 local function test()
-  Build()
+  build()
 end
 
 return {
