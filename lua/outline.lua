@@ -119,6 +119,11 @@ local function build()
 end
 
 local function open()
+  local outlineBuffer = vim.api.nvim_call_function('bufnr', { bufferName })
+  if outlineBuffer > 0 and vim.fn.bufexists(outlineBuffer) then
+    return
+  end
+
   vim.cmd("aboveleft vsplit")
   local buf = vim.api.nvim_create_buf(false, false)
   vim.api.nvim_win_set_buf(0, buf)
