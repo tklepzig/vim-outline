@@ -121,23 +121,13 @@ end
 local function open()
   vim.cmd("aboveleft vsplit")
   local buf = vim.api.nvim_create_buf(false, false)
-
-  vim.api.nvim_buf_set_option(buf, "filetype", "outline")
-  vim.api.nvim_buf_set_option(buf, "readonly", true)
-  vim.api.nvim_buf_set_option(buf, "modifiable", false)
-  vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
-  vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
-  vim.api.nvim_buf_set_option(buf, "swapfile", false)
-
-  vim.api.nvim_win_set_option(0, "wrap", false)
-  vim.api.nvim_win_set_option(0, "number", false)
-  vim.api.nvim_win_set_option(0, "relativenumber", false)
-  vim.api.nvim_win_set_option(0, "foldenable", false)
-  vim.api.nvim_win_set_width(0, 40)
-
   vim.api.nvim_win_set_buf(0, buf)
+  vim.api.nvim_win_set_width(0, 40)
   -- Use manual cmd including silent instead of nvim_buf_set_name to avoid printing "--No lines in buffer--"
   vim.cmd("silent file " .. bufferName)
+
+  vim.cmd("setlocal filetype=outline")
+  vim.cmd("setlocal readonly nomodifiable")
 end
 
 local function test()
