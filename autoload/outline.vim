@@ -1,6 +1,41 @@
-vim9script
+function! FindMatches(pattern)
+    try
+        return execute('g/\v^\s*' . a:pattern . '.*$')
+    catch
+        return ""
+    endtry
+endfunction
 
-import "./utils.vim" as utils
+function! IndentFromResult(line)
+    return match(a:line[stridx(trim(a:line), " ") + 1 :], "[^ ]")
+endfunction
+
+function! LineNrFromResult(line)
+    return str2nr(a:line[0 : stridx(trim(a:line), " ") - 1])
+endfunction
+
+function! TextFromResult(line)
+    return a:line[stridx(trim(a:line), " ") + 1 :]
+endfunction
+
+function! ReplaceWithFirstGroup(text, pattern)
+    return substitute(a:text, '\v^\s*' . a:pattern . '.*$', '\1', "g")
+endfunction
+
+function! MergeRules(baseRules, additionalRules) dict
+    let allRules = copy(a:baseRules)
+    for [ft, patterns] in items(a:additionalRules)
+        let existingFtPatterns = get(allRules, ft, [])
+
+        if len(existingFtPatterns) > 0
+            let allRules[ft] = existingFtPatterns + patterns
+        else
+            let allRules[ft] = patterns
+        endif
+    endfor
+
+    return allRules
+endfunction
 
 const ConfigWindowWidth = () => get(g:, "OutlineWidth", 40)
 const ConfigWindowHeight = () => get(g:, "OutlineHeight", 10)
