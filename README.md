@@ -1,3 +1,5 @@
+# Discontinued
+
 # vim-outline
 
 TODO
